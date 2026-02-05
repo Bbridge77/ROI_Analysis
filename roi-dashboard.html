@@ -991,6 +991,17 @@
                 Export (JSON)
             </button>
             <button 
+                id="downloadPortableBtn"
+                onclick="downloadPortableFile()" 
+                class="action-btn action-btn-blue"
+                style="min-width: 220px; padding: 1rem 2rem; display: flex; align-items: center; justify-content: center; gap: 0.75rem; background: linear-gradient(135deg, #3b82f6, #2563eb); border: 1px solid #3b82f6; border-radius: 0.5rem; color: white; font-weight: 600; cursor: pointer; font-size: 1rem;"
+            >
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 24px; height: 24px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16l4-4m0 0l-4-4m4 4H8m4-4v8m0-12a9 9 0 100 18 9 9 0 000-18z"></path>
+                </svg>
+                Save Shareable File
+            </button>
+            <button 
                 id="importJsonBtn"
                 onclick="openImportJsonModal()" 
                 class="action-btn action-btn-orange"
@@ -1969,6 +1980,19 @@
         </div>
     </div>
 
+    <script type="application/json" id="embeddedStorage">
+        {
+          "roiData": [],
+          "projectOwners": [],
+          "projectColors": {},
+          "laborRates": {},
+          "timeStudies": {},
+          "piyoviData": [],
+          "dateRanges": [],
+          "settings": {}
+        }
+    </script>
+
     <script>
         // Data Management
         /* ============================================================================
@@ -2139,6 +2163,105 @@
          * ============================================================================
          */
 
+        function loadEmbeddedStorage() {
+            const tag = document.getElementById('embeddedStorage');
+            if (!tag) {
+                return {};
+            }
+            try {
+                return JSON.parse(tag.textContent);
+            } catch (error) {
+                console.warn('Embedded storage data could not be parsed.', error);
+                return {};
+            }
+        }
+
+        function safeParseJSON(value, fallback) {
+            if (!value) {
+                return fallback;
+            }
+            try {
+                return JSON.parse(value);
+            } catch (error) {
+                return fallback;
+            }
+        }
+
+        function initializePersistentStorage(embeddedStorage) {
+            const embeddedSettings = embeddedStorage.settings || {};
+            const embeddedDefaults = {
+                projectOwners: Array.isArray(embeddedStorage.projectOwners) ? embeddedStorage.projectOwners : [],
+                projectColors: embeddedStorage.projectColors && typeof embeddedStorage.projectColors === 'object' ? embeddedStorage.projectColors : {},
+                laborRates: embeddedStorage.laborRates && typeof embeddedStorage.laborRates === 'object' ? embeddedStorage.laborRates : {},
+                timeStudies: embeddedStorage.timeStudies && typeof embeddedStorage.timeStudies === 'object' ? embeddedStorage.timeStudies : {},
+                piyoviData: Array.isArray(embeddedStorage.piyoviData) ? embeddedStorage.piyoviData : [],
+                dateRanges: Array.isArray(embeddedStorage.dateRanges) ? embeddedStorage.dateRanges : []
+            };
+
+            Object.entries(embeddedDefaults).forEach(([key, value]) => {
+                if (localStorage.getItem(key) === null && value !== undefined) {
+                    localStorage.setItem(key, JSON.stringify(value));
+                }
+            });
+
+            if (localStorage.getItem('roiData') === null) {
+                const seedData = Array.isArray(embeddedStorage.roiData) && embeddedStorage.roiData.length > 0
+                    ? embeddedStorage.roiData
+                    : roiData;
+                if (Array.isArray(seedData) && seedData.length > 0) {
+                    localStorage.setItem('roiData', JSON.stringify(seedData));
+                }
+            }
+
+            if (!localStorage.getItem('defaultYear') && embeddedSettings.defaultYear) {
+                localStorage.setItem('defaultYear', embeddedSettings.defaultYear);
+            }
+            if (!localStorage.getItem('enableAnimations') && embeddedSettings.enableAnimations !== undefined) {
+                localStorage.setItem('enableAnimations', embeddedSettings.enableAnimations);
+            }
+            if (!localStorage.getItem('autoCollapseFilters') && embeddedSettings.autoCollapseFilters !== undefined) {
+                localStorage.setItem('autoCollapseFilters', embeddedSettings.autoCollapseFilters);
+            }
+        }
+
+        function getPortableStoragePayload() {
+            return {
+                roiData: roiData,
+                projectOwners: safeParseJSON(localStorage.getItem('projectOwners'), []),
+                projectColors: safeParseJSON(localStorage.getItem('projectColors'), {}),
+                laborRates: safeParseJSON(localStorage.getItem('laborRates'), {}),
+                timeStudies: safeParseJSON(localStorage.getItem('timeStudies'), {}),
+                piyoviData: safeParseJSON(localStorage.getItem('piyoviData'), []),
+                dateRanges: safeParseJSON(localStorage.getItem('dateRanges'), []),
+                settings: {
+                    defaultYear: localStorage.getItem('defaultYear') || selectedYear,
+                    enableAnimations: localStorage.getItem('enableAnimations'),
+                    autoCollapseFilters: localStorage.getItem('autoCollapseFilters')
+                }
+            };
+        }
+
+        function downloadPortableFile() {
+            const payload = getPortableStoragePayload();
+            const html = document.documentElement.outerHTML;
+            const embeddedJson = JSON.stringify(payload, null, 2);
+            const updatedHtml = html.replace(
+                /<script type="application\/json" id="embeddedStorage">[\s\S]*?<\/script>/,
+                `<script type="application/json" id="embeddedStorage">\n${embeddedJson}\n</script>`
+            );
+            const blob = new Blob([updatedHtml], { type: 'text/html' });
+            const link = document.createElement('a');
+            const date = new Date().toISOString().slice(0, 10);
+            link.href = URL.createObjectURL(blob);
+            link.download = `roi-dashboard-portable-${date}.html`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        }
+
+        const embeddedStorage = loadEmbeddedStorage();
+
         let roiData = [
             // 2025 Data
             { project: 'RouterVerse', site: 'APO', type: 'FluxQa', month: 'January', count: 15, value: 537, year: '2025', isSample: true },
@@ -2176,6 +2299,10 @@
             { project: 'AI Optimizer', site: 'CMD', type: 'Automation', month: 'January', count: 150, value: 4500, year: '2026', isSample: true },
             { project: 'AI Optimizer', site: 'BPD', type: 'Automation', month: 'January', count: 173, value: 5200, year: '2026', isSample: true },
         ];
+
+        if (Array.isArray(embeddedStorage.roiData) && embeddedStorage.roiData.length > 0) {
+            roiData = embeddedStorage.roiData;
+        }
 
         let selectedYear = '2026';
         let selectedProject = 'All Projects';
@@ -4588,9 +4715,20 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize localStorage
+            initializePersistentStorage(embeddedStorage);
+
+            const storedRoiData = safeParseJSON(localStorage.getItem('roiData'), null);
+            if (Array.isArray(storedRoiData)) {
+                roiData = storedRoiData;
+            }
+
             if (!localStorage.getItem('dateRanges')) {
                 localStorage.setItem('dateRanges', JSON.stringify([]));
+            }
+
+            const storedDefaultYear = localStorage.getItem('defaultYear');
+            if (storedDefaultYear) {
+                selectedYear = storedDefaultYear;
             }
             
             initializeFilters();
