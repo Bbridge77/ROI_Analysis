@@ -1259,12 +1259,12 @@
             <!-- Project Owners Tab -->
             <div id="adminTabProjectOwners" class="admin-tab-content">
                 <p class="modal-description">
-                    Manage project ownership information. Assign owners and contact details to each project.
+                    Manage project ownership information. Assign owners and contact details to each project. Add an optional Type to override the default cost calculation only when needed.
                 </p>
                 
                 <!-- Add New Project Owner Section -->
                 <div style="margin: 1.5rem 0; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 0.5rem; border: 1px solid rgba(255, 255, 255, 0.1);">
-                    <div style="display: grid; grid-template-columns: 1.2fr 1fr 1.2fr 1fr auto; gap: 0.75rem; align-items: flex-end;">
+                    <div style="display: grid; grid-template-columns: 1.1fr 1fr 1fr 1.2fr 1fr auto; gap: 0.75rem; align-items: flex-end;">
                         <div>
                             <label style="display: block; margin-bottom: 0.5rem; font-size: 0.75rem; color: #f9a8d4; font-weight: 600;">Project</label>
                             <select 
@@ -1273,6 +1273,15 @@
                             >
                                 <option value="" style="color: #666;">Select Project</option>
                             </select>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.75rem; color: #f9a8d4; font-weight: 600;">Type (Optional)</label>
+                            <input 
+                                type="text" 
+                                id="newOwnerType" 
+                                placeholder="Leave blank for default"
+                                style="width: 100%; padding: 0.6rem; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 0.5rem; color: white; font-size: 0.875rem;"
+                            />
                         </div>
                         <div>
                             <label style="display: block; margin-bottom: 0.5rem; font-size: 0.75rem; color: #f9a8d4; font-weight: 600;">Cost Calc</label>
@@ -1320,6 +1329,7 @@
                                     <input type="checkbox" id="selectAllOwners" onclick="toggleAllOwners()" style="cursor: pointer; width: 18px; height: 18px;">
                                 </th>
                                 <th style="padding: 0.75rem; text-align: left; border: 1px solid rgba(255, 255, 255, 0.15); font-weight: 700; color: #f9a8d4;">Project</th>
+                                <th style="padding: 0.75rem; text-align: left; border: 1px solid rgba(255, 255, 255, 0.15); font-weight: 700; color: #f9a8d4;">Type</th>
                                 <th style="padding: 0.75rem; text-align: left; border: 1px solid rgba(255, 255, 255, 0.15); font-weight: 700; color: #f9a8d4;">Cost Calc</th>
                                 <th style="padding: 0.75rem; text-align: left; border: 1px solid rgba(255, 255, 255, 0.15); font-weight: 700; color: #f9a8d4;">Email</th>
                                 <th style="padding: 0.75rem; text-align: left; border: 1px solid rgba(255, 255, 255, 0.15); font-weight: 700; color: #f9a8d4;">Name</th>
@@ -1332,6 +1342,14 @@
                                     <input 
                                         type="text" 
                                         id="filterOwnerProject" oninput="populateProjectOwnersTable()" 
+                                        placeholder="Filter..."
+                                        style="width: 100%; padding: 0.5rem; background: rgba(60, 50, 80, 0.9); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 0.25rem; color: white; font-size: 0.875rem;"
+                                    />
+                                </th>
+                                <th style="padding: 0.5rem; border: 1px solid rgba(255, 255, 255, 0.15);">
+                                    <input 
+                                        type="text" 
+                                        id="filterOwnerType" oninput="populateProjectOwnersTable()" 
                                         placeholder="Filter..."
                                         style="width: 100%; padding: 0.5rem; background: rgba(60, 50, 80, 0.9); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 0.25rem; color: white; font-size: 0.875rem;"
                                     />
@@ -1979,8 +1997,9 @@
          * 
          * [PO] Project Owners - projectOwners
          *      Storage: localStorage.getItem('projectOwners')
-         *      Fields: project, costCalc, email, name
+         *      Fields: project, type (optional), costCalc, email, name
          *      Purpose: Assigns ownership and cost calculation method
+         *      Note: Add a type only when a project needs a different costCalc for that type.
          *      costCalc values: "Time", "Event", or "Value"
          *      Usage: If costCalc = "Time", calculate using [TS] + [LR]
          *             If costCalc = "Event", calculate using [EC]
@@ -2040,7 +2059,8 @@
          *            Labor Rates require SITE match
          * 
          * Step-by-step calculation:
-         * 1. Check [PO]: projectOwners.find(po => po.project === recordProject)
+         * 1. Check [PO]: projectOwners.find(po => po.project === recordProject && po.type === recordType)
+         *    - If none, fall back to project-only entry (type blank)
          *    - If costCalc !== "Time", skip this method
          * 2. Get Count from data record (number of events that month)
          * 3. Lookup Time Savings from [TS] matching: SITE + PROJECT + TYPE
@@ -2065,7 +2085,8 @@
          *            Type is NOT needed for Event Cost
          * 
          * Step-by-step calculation:
-         * 1. Check [PO]: projectOwners.find(po => po.project === recordProject)
+         * 1. Check [PO]: projectOwners.find(po => po.project === recordProject && po.type === recordType)
+         *    - If none, fall back to project-only entry (type blank)
          *    - If costCalc !== "Event", skip this method
          * 2. Get Count from data record (number of events that month)
          * 3. Lookup Event Savings from [EC] matching: SITE + PROJECT
@@ -2094,7 +2115,7 @@
          * ============================================================================
          * For each data record:
          *   1. Get project from record
-         *   2. Lookup [PO] → Get costCalc for this project
+         *   2. Lookup [PO] → Get costCalc for this project + optional type
          *   3. If costCalc = "Time":
          *      a. Get site, project, and type from record
          *      b. Lookup [TS] → Match SITE + PROJECT + TYPE → Get savings (min)
@@ -3489,6 +3510,7 @@
             
             // Get filter values
             const filterProject = (document.getElementById('filterOwnerProject')?.value || '').toLowerCase();
+            const filterType = (document.getElementById('filterOwnerType')?.value || '').toLowerCase();
             const filterCostCalc = (document.getElementById('filterOwnerCostCalc')?.value || '').toLowerCase();
             const filterEmail = (document.getElementById('filterOwnerEmail')?.value || '').toLowerCase();
             const filterName = (document.getElementById('filterOwnerName')?.value || '').toLowerCase();
@@ -3497,6 +3519,7 @@
             const filteredData = projectOwners.filter(owner => {
                 return (
                     owner.project.toLowerCase().includes(filterProject) &&
+                    (owner.type || '').toLowerCase().includes(filterType) &&
                     (owner.costCalc || '').toLowerCase().includes(filterCostCalc) &&
                     owner.email.toLowerCase().includes(filterEmail) &&
                     (owner.name || owner.firstName || '').toLowerCase().includes(filterName)
@@ -3507,7 +3530,7 @@
             tbody.innerHTML = '';
             
             if (filteredData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem; color: #9ca3af;">No project owners found. Add one above or adjust filters.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #9ca3af;">No project owners found. Add one above or adjust filters.</td></tr>';
                 return;
             }
             
@@ -3517,6 +3540,7 @@
                 
                 // Handle legacy data that might have firstName/lastName
                 const displayName = owner.name || `${owner.firstName || ''} ${owner.lastName || ''}`.trim();
+                const displayType = owner.type || '';
                 const costCalc = owner.costCalc || '';
                 
                 const tr = document.createElement('tr');
@@ -3526,6 +3550,17 @@
                         <input type="checkbox" class="owner-checkbox" data-index="${originalIndex}" style="cursor: pointer; width: 18px; height: 18px;">
                     </td>
                     <td style="padding: 0.75rem; border: 1px solid rgba(255, 255, 255, 0.15); color: white;">${owner.project}</td>
+                    <td style="padding: 0.75rem; border: 1px solid rgba(255, 255, 255, 0.15);">
+                        <input 
+                            type="text" 
+                            value="${displayType}" 
+                            data-index="${originalIndex}"
+                            data-field="type"
+                            class="owner-input"
+                            placeholder="Default"
+                            style="width: 100%; padding: 0.5rem; background: rgba(60, 50, 80, 0.8); border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 0.25rem; color: white;"
+                        />
+                    </td>
                     <td style="padding: 0.75rem; border: 1px solid rgba(255, 255, 255, 0.15);">
                         <select 
                             data-index="${originalIndex}"
@@ -3565,6 +3600,7 @@
 
         window.addProjectOwner = function() {
             const project = document.getElementById('newOwnerProject').value;
+            const type = document.getElementById('newOwnerType').value.trim();
             const costCalc = document.getElementById('newOwnerCostCalc').value;
             const email = document.getElementById('newOwnerEmail').value.trim();
             const name = document.getElementById('newOwnerName').value.trim();
@@ -3598,16 +3634,17 @@
             const projectOwners = JSON.parse(localStorage.getItem('projectOwners') || '[]');
             
             // Check if project already has an owner
-            const existingIndex = projectOwners.findIndex(owner => owner.project === project);
+            const existingIndex = projectOwners.findIndex(owner => owner.project === project && (owner.type || '') === type);
             if (existingIndex !== -1) {
-                if (confirm(`Project "${project}" already has an owner (${projectOwners[existingIndex].name || projectOwners[existingIndex].firstName}). Replace?`)) {
-                    projectOwners[existingIndex] = { project, costCalc, email, name };
+                const typeLabel = type ? ` (${type})` : '';
+                if (confirm(`Project "${project}"${typeLabel} already has an owner (${projectOwners[existingIndex].name || projectOwners[existingIndex].firstName}). Replace?`)) {
+                    projectOwners[existingIndex] = { project, type, costCalc, email, name };
                 } else {
                     return;
                 }
             } else {
                 // Add new owner
-                projectOwners.push({ project, costCalc, email, name });
+                projectOwners.push({ project, type, costCalc, email, name });
             }
             
             // Save and refresh
@@ -3615,6 +3652,7 @@
             
             // Clear inputs
             document.getElementById('newOwnerProject').value = '';
+            document.getElementById('newOwnerType').value = '';
             document.getElementById('newOwnerCostCalc').value = '';
             document.getElementById('newOwnerEmail').value = '';
             document.getElementById('newOwnerName').value = '';
@@ -3688,6 +3726,7 @@
 
         window.clearOwnerFilters = function() {
             document.getElementById('filterOwnerProject').value = '';
+            document.getElementById('filterOwnerType').value = '';
             document.getElementById('filterOwnerCostCalc').value = '';
             document.getElementById('filterOwnerEmail').value = '';
             document.getElementById('filterOwnerName').value = '';
@@ -3709,8 +3748,8 @@
             const config = {
                 projectOwners: {
                     title: '📤 Import Project Owners',
-                    description: 'Paste your data from Excel. Required columns: project, costCalc, email, name',
-                    example: 'project\tcostCalc\temail\tname\nRouterVerse\tTime\tjohn@example.com\tJohn Smith'
+                    description: 'Paste your data from Excel. Required columns: project, costCalc, email, name. Optional: type',
+                    example: 'project\ttype\tcostCalc\temail\tname\nRouterVerse\tFluxQa\tTime\tjohn@example.com\tJohn Smith'
                 },
                 laborRates: {
                     title: '📤 Import Labor Rates',
@@ -3805,6 +3844,7 @@
             
             const projectOwners = rows.map(row => ({
                 project: row.project,
+                type: headers.includes('type') ? row.type : '',
                 costCalc: row.costcalc,
                 email: row.email,
                 name: row.name
@@ -3887,8 +3927,16 @@
                 alert('No project owners to export.');
                 return;
             }
+
+            const exportRows = projectOwners.map(owner => ({
+                project: owner.project || '',
+                type: owner.type || '',
+                costCalc: owner.costCalc || '',
+                email: owner.email || '',
+                name: owner.name || owner.firstName || ''
+            }));
             
-            const ws = XLSX.utils.json_to_sheet(projectOwners);
+            const ws = XLSX.utils.json_to_sheet(exportRows);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Project Owners');
             XLSX.writeFile(wb, 'project_owners.xlsx');
@@ -5681,6 +5729,26 @@
         // Alias for data section
         window.populateDataTable = updateDataTable;
 
+        function normalizeOwnerField(value) {
+            return (value || '').toString().trim().toLowerCase();
+        }
+
+        function findProjectOwnerForRecord(projectOwners, record) {
+            const projectKey = normalizeOwnerField(record.project);
+            const typeKey = normalizeOwnerField(record.type);
+            const exactMatch = projectOwners.find(owner =>
+                normalizeOwnerField(owner.project) === projectKey &&
+                normalizeOwnerField(owner.type) === typeKey
+            );
+            if (exactMatch) {
+                return exactMatch;
+            }
+            return projectOwners.find(owner =>
+                normalizeOwnerField(owner.project) === projectKey &&
+                !normalizeOwnerField(owner.type)
+            );
+        }
+
         // Recalculate values for records with $0 value
         window.recalculateZeroValues = function() {
             try {
@@ -5760,10 +5828,10 @@
                 if (record.value !== 0) return; // Skip records that already have values
                 
                 // Get project owner settings
-                const projectOwner = projectOwners.find(po => po.project === record.project);
+                const projectOwner = findProjectOwnerForRecord(projectOwners, record);
                 
                 if (!projectOwner) {
-                    errors.push(`${record.year} ${record.month} - ${record.project}: No project owner defined in [PO] (need: project=${record.project})`);
+                    errors.push(`${record.year} ${record.month} - ${record.project} (${record.type}): No project owner defined in [PO] (need: project=${record.project}, type=${record.type || 'blank'})`);
                     skipped++;
                     return;
                 }
