@@ -2213,6 +2213,10 @@
                 }
             }
 
+            if (Array.isArray(embeddedStorage.roiData) && embeddedStorage.roiData.length > 0) {
+                localStorage.setItem('roiData', JSON.stringify(embeddedStorage.roiData));
+            }
+
             if (!localStorage.getItem('defaultYear') && embeddedSettings.defaultYear) {
                 localStorage.setItem('defaultYear', embeddedSettings.defaultYear);
             }
@@ -4717,9 +4721,13 @@
         document.addEventListener('DOMContentLoaded', function() {
             initializePersistentStorage(embeddedStorage);
 
-            const storedRoiData = safeParseJSON(localStorage.getItem('roiData'), null);
-            if (Array.isArray(storedRoiData)) {
-                roiData = storedRoiData;
+            if (Array.isArray(embeddedStorage.roiData) && embeddedStorage.roiData.length > 0) {
+                roiData = embeddedStorage.roiData;
+            } else {
+                const storedRoiData = safeParseJSON(localStorage.getItem('roiData'), null);
+                if (Array.isArray(storedRoiData)) {
+                    roiData = storedRoiData;
+                }
             }
 
             if (!localStorage.getItem('dateRanges')) {
