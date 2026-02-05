@@ -4725,8 +4725,10 @@
                 roiData = embeddedStorage.roiData;
             } else {
                 const storedRoiData = safeParseJSON(localStorage.getItem('roiData'), null);
-                if (Array.isArray(storedRoiData)) {
+                if (Array.isArray(storedRoiData) && storedRoiData.length > 0) {
                     roiData = storedRoiData;
+                } else if (!localStorage.getItem('roiData')) {
+                    localStorage.setItem('roiData', JSON.stringify(roiData));
                 }
             }
 
