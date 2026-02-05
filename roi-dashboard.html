@@ -7,6 +7,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <template id="embeddedStorage">
+        {
+          "roiData": [],
+          "projectOwners": [],
+          "projectColors": {},
+          "laborRates": {},
+          "timeStudies": {},
+          "piyoviData": [],
+          "dateRanges": [],
+          "settings": {}
+        }
+    </template>
     <style>
         * {
             margin: 0;
@@ -1980,19 +1992,6 @@
         </div>
     </div>
 
-    <script type="application/json" id="embeddedStorage">
-        {
-          "roiData": [],
-          "projectOwners": [],
-          "projectColors": {},
-          "laborRates": {},
-          "timeStudies": {},
-          "piyoviData": [],
-          "dateRanges": [],
-          "settings": {}
-        }
-    </script>
-
     <script>
         // Data Management
         /* ============================================================================
@@ -2250,8 +2249,8 @@
             const html = document.documentElement.outerHTML;
             const embeddedJson = JSON.stringify(payload, null, 2);
             const updatedHtml = html.replace(
-                /<script type="application\/json" id="embeddedStorage">[\s\S]*?<\/script>/,
-                `<script type="application/json" id="embeddedStorage">\n${embeddedJson}\n</script>`
+                /<template id="embeddedStorage">[\s\S]*?<\/template>/,
+                `<template id="embeddedStorage">\n${embeddedJson}\n</template>`
             );
             const blob = new Blob([updatedHtml], { type: 'text/html' });
             const link = document.createElement('a');
