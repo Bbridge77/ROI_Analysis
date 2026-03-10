@@ -5897,14 +5897,14 @@
                         if (similarTimeStudy) {
                             errors.push(`${record.year} ${record.month} - ${record.project} - ${record.type} at ${record.site}: CASE MISMATCH in [TS]! Looking for "${record.project}" but found "${similarTimeStudy.project}" (check capitalization)`);
                         } else {
-                            // Check if project exists with different spelling
+                            // Check if site+project exists but requested type is missing/mismatched
                             const projectMatch = timeStudies.find(ts => 
                                 normalizeLookupField(ts.site) === normalizeLookupField(record.site) && 
                                 normalizeLookupField(ts.project) === normalizeLookupField(record.project)
                             );
                             
                             if (projectMatch) {
-                                errors.push(`${record.year} ${record.month} - ${record.project} - ${record.type} at ${record.site}: Project name mismatch in [TS]! Looking for "${record.project}" but found "${projectMatch.project}". Type "${record.type}" may also be missing.`);
+                                errors.push(`${record.year} ${record.month} - ${record.project} - ${record.type} at ${record.site}: Type mismatch or missing in [TS]. Looking for type "${record.type}" under site=${record.site}, project=${record.project}, but found type "${projectMatch.type || '(blank)'}".`);
                             } else {
                                 errors.push(`${record.year} ${record.month} - ${record.project} - ${record.type} at ${record.site}: No time study in [TS] (need: site=${record.site}, project=${record.project}, type=${record.type})`);
                             }
