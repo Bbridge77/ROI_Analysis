@@ -3118,7 +3118,7 @@
                 tbody.appendChild(tr);
             });
             
-            // Add event listeners for real-time savings calculation
+            // Add event listeners for real-time savings calculation + autosave edits
             document.querySelectorAll('.time-study-input').forEach(input => {
                 input.addEventListener('input', function() {
                     const key = this.dataset.key;
@@ -3132,6 +3132,14 @@
                     
                     savingsCell.textContent = savings;
                     savingsCell.style.color = savings > 0 ? '#10b981' : (savings < 0 ? '#ef4444' : '#9ca3af');
+
+                    // Persist edits immediately so manual table updates are not lost
+                    const savedStudies = JSON.parse(localStorage.getItem('timeStudies') || '{}');
+                    savedStudies[key] = {
+                        oldTime,
+                        newTime
+                    };
+                    localStorage.setItem('timeStudies', JSON.stringify(savedStudies));
                 });
             });
         }
