@@ -5733,6 +5733,32 @@
             return (value || '').toString().trim().toLowerCase();
         }
 
+        function normalizeLookupField(value) {
+            return (value || '').toString().trim().toLowerCase();
+        }
+
+        function findTimeStudyForRecord(timeStudies, record) {
+            const siteKey = normalizeLookupField(record.site);
+            const projectKey = normalizeLookupField(record.project);
+            const typeKey = normalizeLookupField(record.type);
+
+            const exact = timeStudies.find(ts =>
+                normalizeLookupField(ts.site) === siteKey &&
+                normalizeLookupField(ts.project) === projectKey &&
+                normalizeLookupField(ts.type) === typeKey
+            );
+
+            if (exact) {
+                return exact;
+            }
+
+            return timeStudies.find(ts =>
+                normalizeLookupField(ts.site) === siteKey &&
+                normalizeLookupField(ts.project) === projectKey &&
+                !normalizeLookupField(ts.type)
+            );
+        }
+
         function findProjectOwnerForRecord(projectOwners, record) {
             const projectKey = normalizeOwnerField(record.project);
             const typeKey = normalizeOwnerField(record.type);
@@ -5840,11 +5866,7 @@
                 
                 if (costCalc === 'Time') {
                     // Calculate using Time Studies + Labor Rates
-                    const timeStudy = timeStudies.find(ts => 
-                        ts.site === record.site && 
-                        ts.project === record.project && 
-                        ts.type === record.type
-                    );
+                    const timeStudy = findTimeStudyForRecord(timeStudies, record);
                     
                     // Debug logging for first few records
                     if (skipped < 3) {
@@ -5856,9 +5878,9 @@
                     if (!timeStudy) {
                         // Check if there's a similar entry with different case
                         const similarTimeStudy = timeStudies.find(ts => 
-                            ts.site.toLowerCase() === record.site.toLowerCase() && 
-                            ts.project.toLowerCase() === record.project.toLowerCase() && 
-                            ts.type.toLowerCase() === record.type.toLowerCase()
+                            normalizeLookupField(ts.site) === normalizeLookupField(record.site) && 
+                            normalizeLookupField(ts.project) === normalizeLookupField(record.project) && 
+                            normalizeLookupField(ts.type) === normalizeLookupField(record.type)
                         );
                         
                         if (skipped < 3) {
@@ -5877,8 +5899,8 @@
                         } else {
                             // Check if project exists with different spelling
                             const projectMatch = timeStudies.find(ts => 
-                                ts.site === record.site && 
-                                ts.project.toLowerCase() === record.project.toLowerCase()
+                                normalizeLookupField(ts.site) === normalizeLookupField(record.site) && 
+                                normalizeLookupField(ts.project) === normalizeLookupField(record.project)
                             );
                             
                             if (projectMatch) {
@@ -5891,11 +5913,13 @@
                         return;
                     }
                     
-                    const laborRate = laborRates.find(lr => lr.site === record.site);
+                    const laborRate = laborRates.find(lr =>
+                        normalizeLookupField(lr.site) === normalizeLookupField(record.site)
+                    );
                     
                     if (!laborRate) {
                         // Check for case mismatch in site
-                        const similarSite = laborRates.find(lr => lr.site.toLowerCase() === record.site.toLowerCase());
+                        const similarSite = laborRates.find(lr => normalizeLookupField(lr.site) === normalizeLookupField(record.site));
                         if (similarSite) {
                             errors.push(`${record.year} ${record.month} - ${record.site}: CASE MISMATCH in [LR]! Looking for "${record.site}" but found "${similarSite.site}" (check capitalization)`);
                         } else {
@@ -5935,23 +5959,23 @@
                 } else if (costCalc === 'Event') {
                     // Calculate using Event Cost
                     let eventCost = eventCosts.find(ec => 
-                        ec.site === record.site && 
-                        ec.project === record.project
+                        normalizeLookupField(ec.site) === normalizeLookupField(record.site) && 
+                        normalizeLookupField(ec.project) === normalizeLookupField(record.project)
                     );
                     
                     // If not found, try wildcard site
                     if (!eventCost) {
                         eventCost = eventCosts.find(ec => 
-                            ec.site === '*' && 
-                            ec.project === record.project
+                            normalizeLookupField(ec.site) === '*' && 
+                            normalizeLookupField(ec.project) === normalizeLookupField(record.project)
                         );
                     }
                     
                     if (!eventCost) {
                         // Check for case mismatch
                         const similarEventCost = eventCosts.find(ec => 
-                            (ec.site.toLowerCase() === record.site.toLowerCase() || ec.site === '*') && 
-                            ec.project.toLowerCase() === record.project.toLowerCase()
+                            (normalizeLookupField(ec.site) === normalizeLookupField(record.site) || normalizeLookupField(ec.site) === '*') && 
+                            normalizeLookupField(ec.project) === normalizeLookupField(record.project)
                         );
                         
                         if (similarEventCost) {
