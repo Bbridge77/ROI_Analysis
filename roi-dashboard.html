@@ -5798,7 +5798,8 @@
                 
                 // Load admin tables
                 let projectOwners = JSON.parse(localStorage.getItem('projectOwners') || '[]');
-                let laborRates = JSON.parse(localStorage.getItem('laborRates') || '[]');
+                let laborRatesRaw = JSON.parse(localStorage.getItem('laborRates') || '{}');
+                let laborRates = [];
                 let timeStudiesObj = JSON.parse(localStorage.getItem('timeStudies') || '{}');
                 let eventCosts = JSON.parse(localStorage.getItem('piyoviData') || '[]');
                 
@@ -5823,14 +5824,23 @@
                     timeStudies = [];
                 }
                 
-                // Ensure they are arrays
+                // Convert laborRates from object map to array
+                if (Array.isArray(laborRatesRaw)) {
+                    laborRates = laborRatesRaw;
+                } else if (laborRatesRaw && typeof laborRatesRaw === 'object') {
+                    laborRates = Object.entries(laborRatesRaw).map(([site, rate]) => ({
+                        site,
+                        rate
+                    }));
+                    console.log('Converted laborRates object to array:', laborRates.length, 'entries');
+                } else {
+                    laborRates = [];
+                }
+
+                // Ensure remaining tables are arrays
                 if (!Array.isArray(projectOwners)) {
                     console.error('projectOwners is not an array:', typeof projectOwners, projectOwners);
                     projectOwners = [];
-                }
-                if (!Array.isArray(laborRates)) {
-                    console.error('laborRates is not an array:', typeof laborRates, laborRates);
-                    laborRates = [];
                 }
                 if (!Array.isArray(eventCosts)) {
                     console.error('eventCosts is not an array:', typeof eventCosts, eventCosts);
