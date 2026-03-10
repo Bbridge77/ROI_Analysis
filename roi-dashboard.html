@@ -2612,9 +2612,8 @@
             }
         }
 
-        window.populateLaborRates = function() {
-            // Default labor rates based on your image
-            const defaultRates = {
+        function getDefaultLaborRates() {
+            return {
                 'APO': 18.00,
                 'BPD': 27.00,
                 'CCK': 18.00,
@@ -2629,6 +2628,10 @@
                 'TTC': 27.00,
                 'UKO': 18.00
             };
+        }
+
+        window.populateLaborRates = function() {
+            const defaultRates = getDefaultLaborRates();
             
             // Get all unique sites from data
             const sitesInData = [...new Set(roiData.map(d => d.site))];
@@ -5824,18 +5827,34 @@
                     timeStudies = [];
                 }
                 
-                // Convert laborRates from object map to array
+                // Convert and merge laborRates with defaults (Admin UI shows defaults even when not yet saved)
+                const defaultLaborRates = getDefaultLaborRates();
+                const savedLaborRatesMap = {};
+
                 if (Array.isArray(laborRatesRaw)) {
-                    laborRates = laborRatesRaw;
+                    laborRatesRaw.forEach(entry => {
+                        if (!entry || typeof entry !== 'object') return;
+                        const site = (entry.site || '').toString().trim();
+                        if (!site) return;
+                        const rate = parseFloat(entry.rate ?? entry.laborRate ?? entry.laborrate);
+                        if (!Number.isNaN(rate)) {
+                            savedLaborRatesMap[site] = rate;
+                        }
+                    });
+                    console.log('Loaded laborRates array:', Object.keys(savedLaborRatesMap).length, 'entries');
                 } else if (laborRatesRaw && typeof laborRatesRaw === 'object') {
-                    laborRates = Object.entries(laborRatesRaw).map(([site, rate]) => ({
-                        site,
-                        rate
-                    }));
-                    console.log('Converted laborRates object to array:', laborRates.length, 'entries');
-                } else {
-                    laborRates = [];
+                    Object.entries(laborRatesRaw).forEach(([site, rate]) => {
+                        const siteKey = (site || '').toString().trim();
+                        const parsedRate = parseFloat(rate);
+                        if (siteKey && !Number.isNaN(parsedRate)) {
+                            savedLaborRatesMap[siteKey] = parsedRate;
+                        }
+                    });
+                    console.log('Loaded laborRates object:', Object.keys(savedLaborRatesMap).length, 'entries');
                 }
+
+                const mergedLaborRatesMap = { ...defaultLaborRates, ...savedLaborRatesMap };
+                laborRates = Object.entries(mergedLaborRatesMap).map(([site, rate]) => ({ site, rate }));
 
                 // Ensure remaining tables are arrays
                 if (!Array.isArray(projectOwners)) {
