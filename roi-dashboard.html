@@ -5967,9 +5967,10 @@
                     }
                     
                     // Calculate: Count × Minutes × (Rate $/min)
-                    const count = record.count || 1;
+                    const count = Number(record.count ?? 1);
                     const minutes = parseFloat(timeStudy.savings) || 0;
-                    const ratePerMin = parseFloat(laborRate.rate) || 0;
+                    const ratePerHour = parseFloat(laborRate.rate) || 0;
+                    const ratePerMin = ratePerHour / 60;
                     
                     // Check for zero values that would result in $0
                     if (minutes === 0) {
@@ -6025,7 +6026,7 @@
                     }
                     
                     // Calculate: Count × $ per event
-                    const count = record.count || 1;
+                    const count = Number(record.count ?? 1);
                     const costPerEvent = parseFloat(eventCost.savings) || 0;
                     
                     // Check for zero values that would result in $0
